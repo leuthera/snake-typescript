@@ -11,6 +11,28 @@ var snake = {
 var apple = { x: 15, y: 15 };
 var movement = { x: 0, y: 0 };
 var direction = 0;
+var move = {
+    top: function () {
+        movement.x = 0;
+        movement.y = -1;
+        return 38 /* Top */;
+    },
+    right: function () {
+        movement.x = 1;
+        movement.y = 0;
+        return 39 /* Right */;
+    },
+    left: function () {
+        movement.x = -1;
+        movement.y = 0;
+        return 37 /* Left */;
+    },
+    bottom: function () {
+        movement.x = 0;
+        movement.y = 1;
+        return 40 /* Bottom */;
+    }
+};
 var tile_size = 20;
 var score = 0;
 function through_walls(allowed) {
@@ -74,36 +96,64 @@ function game() {
     ctx.font = "30px Arial";
     ctx.fillText(score.toString(), 10, 30);
 }
+var gamepad = function (idx) { return navigator.getGamepads()[idx]; };
+var axes = function (pad, idx) { return pad && pad.axes && pad.axes[idx] ? pad.axes[idx].toFixed(2) : null; };
+function inputloop() {
+    var pad = gamepad(0);
+    if (pad) {
+        var axis = axes(pad, 9);
+        var btn = pad.buttons;
+        if (axis) {
+            if (axis < -0.7)
+                move.top();
+            if (axis > 0.4 && axis < 1)
+                move.left() && (game_started = true);
+            if (axis < -0.2 && axis > -0.6)
+                move.right();
+            if (axis < 0.3 && axis > -0.1)
+                move.bottom();
+        }
+        else {
+            if (btn[12].pressed)
+                move.top();
+            if (btn[14].pressed)
+                move.left() && (game_started = true);
+            if (btn[15].pressed)
+                move.right();
+            if (btn[13].pressed)
+                move.bottom();
+        }
+        requestAnimationFrame(inputloop);
+    }
+}
+;
+requestAnimationFrame(inputloop);
+window.addEventListener("gamepadconnected", function (e) {
+    requestAnimationFrame(inputloop);
+    console.log(e, "inputloop started");
+});
 document.addEventListener("keydown", keyStroke);
 function keyStroke(e) {
     switch (e.keyCode) {
         case 37 /* Left */:
             if (direction === 39 /* Right */)
                 break;
-            direction = 37 /* Left */;
-            movement.x = -1;
-            movement.y = 0;
+            direction = move.left();
             break;
         case 38 /* Top */:
             if (direction === 40 /* Bottom */)
                 break;
-            direction = 38 /* Top */;
-            movement.x = 0;
-            movement.y = -1;
+            direction = move.top();
             break;
         case 39 /* Right */:
             if (direction === 37 /* Left */)
                 break;
-            direction = 39 /* Right */;
-            movement.x = 1;
-            movement.y = 0;
+            direction = move.right();
             break;
         case 40 /* Bottom */:
             if (direction === 38 /* Top */)
                 break;
-            direction = 40 /* Bottom */;
-            movement.x = 0;
-            movement.y = 1;
+            direction = move.bottom();
             break;
     }
     if (direction)

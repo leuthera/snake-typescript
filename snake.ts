@@ -18,6 +18,28 @@ let apple     : Vector = { x: 15, y: 15 };
 
 let movement  : Vector = { x: 0, y: 0 };
 let direction : number = 0;
+let move = {
+    top() {
+        movement.x = 0;
+        movement.y = -1;
+        return Nav.Top;
+    },
+    right() {
+        movement.x = 1;
+        movement.y = 0;
+        return Nav.Right;
+    },
+    left() {
+        movement.x = -1;
+        movement.y = 0;
+        return Nav.Left;
+    },
+    bottom() {
+        movement.x = 0;
+        movement.y = 1;
+        return Nav.Bottom;
+    }
+}
 
 let tile_size : number = 20;
 
@@ -58,7 +80,7 @@ function gameover(): void {
         window.clearInterval( gameLoop );
 
         ui_ctx.fillStyle = "gray";
-        ui_ctx.font = "60px Arial";
+        ui_ctx.font      = "60px Arial";
         ui_ctx.fillText( "GameOver", 60, 50 );
     }
 }
@@ -105,32 +127,57 @@ function game(): void {
     ctx.fillText( score.toString(), 10, 30 );
 }
 
+const gamepad = (idx) => navigator.getGamepads()[ idx ];
+const axes = ( pad, idx ) => pad && pad.axes && pad.axes[ idx ] ? pad.axes[ idx ].toFixed( 2 ) : null;
+
+function inputloop() {
+    const pad = gamepad(0);
+    if (pad) {
+        let axis  = axes(pad, 9);
+        let btn   = pad.buttons;
+
+        if (axis) {
+            if ( axis < -0.7 )                move.top();
+            if ( axis > 0.4  && axis < 1 )    move.left() && ( game_started = true )
+            if ( axis < -0.2 && axis > -0.6 ) move.right();
+            if ( axis < 0.3  && axis > -0.1 ) move.bottom();
+        } 
+        else {
+            if ( btn[12].pressed ) move.top();
+            if ( btn[14].pressed ) move.left() && ( game_started = true )
+            if ( btn[15].pressed ) move.right();
+            if ( btn[13].pressed ) move.bottom();
+        }
+        
+        requestAnimationFrame( inputloop );
+    }
+};
+
+requestAnimationFrame( inputloop );
+window.addEventListener( "gamepadconnected", (e) => {
+    requestAnimationFrame( inputloop );
+    console.log(e, "inputloop started");
+});
+
+
 document.addEventListener( "keydown", keyStroke );
 function keyStroke( e: KeyboardEvent ) {
     switch ( e.keyCode ) {
         case Nav.Left:
             if ( direction === Nav.Right ) break;
-            direction = Nav.Left;
-            movement.x = -1;
-            movement.y = 0;
+            direction = move.left();
             break;
         case Nav.Top:
             if ( direction === Nav.Bottom ) break;
-            direction = Nav.Top;
-            movement.x = 0;
-            movement.y = -1;
+            direction = move.top();
             break;
         case Nav.Right:
             if ( direction === Nav.Left ) break;
-            direction = Nav.Right;
-            movement.x = 1;
-            movement.y = 0;
+            direction = move.right();
             break;
         case Nav.Bottom:
             if ( direction === Nav.Top ) break;
-            direction = Nav.Bottom;
-            movement.x = 0;
-            movement.y = 1;
+            direction = move.bottom();
             break;
     }
 
